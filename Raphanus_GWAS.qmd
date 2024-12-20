@@ -1,0 +1,32 @@
+---
+title: "Raphanus_color_chem_GWAS"
+author: "Julia G Harenčár"
+format: html
+editor: visual
+---
+
+## Phenotype data
+
+### Chem data 
+
+First, taking a peak at the chemistry data distributions
+
+```{r}
+pheno <- read.csv('Radish_Phenotype_Data.csv')
+hist(pheno$Glucoraphanin, breaks=30)
+hist(pheno$Glucoraphenin, breaks=30)
+hist(pheno$Glucoerucin, breaks=30)
+hist(pheno$X4.Methylthio.3.butenyl.glucosinolate, breaks=30)
+hist(pheno$Glucobrassicin, breaks=30)
+hist(pheno$GSL_total, breaks=30)
+
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).

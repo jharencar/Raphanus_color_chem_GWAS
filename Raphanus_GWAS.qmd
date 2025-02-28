@@ -3,30 +3,226 @@ title: "Raphanus_color_chem_GWAS"
 author: "Julia G Harenčár"
 format: html
 editor: visual
+editor_options: 
+  chunk_output_type: console
 ---
+## Load packages
+```{r}
+#| echo: false
+library(tidyverse)
+```
 
 ## Phenotype data
 
-### Chem data 
+Start by merging identical rows and converting to wide format; one row per sample ID with the treatment and no treatment chem values.
+```{r}
+# load data
+pheno_OG <- read.csv('Radish_Phenotype_Data.csv')
+
+# remove duplicates and pivot wide
+pheno_wide <- pheno_OG %>% 
+  distinct() %>% 
+  pivot_wider(id_cols = c(plant_ID,generation,flower_color,antho,carot), 
+           names_from = treatment, 
+           values_from = c(unknown1,Glucoraphanin,Glucoraphenin,unknown2,Glucoerucin,X4.Methylthio.3.butenyl.glucosinolate,Glucobrassicin,GSL_total),
+names_prefix = "treatment_")
+  
+######OLD#######
+# from when I was figuring out there are duplicates
+# # get number of replicates per ID
+# ID_no <- pheno %>% count(plant_ID, name = "count")
+# # get number that have 3 reps
+# x <- ID_no %>% filter(count == 3)
+# x$plant_ID
+# 
+# # check for non-unique rows
+# duplicates <- pheno %>%
+#   group_by(across(everything())) %>% # Group by all columns
+#   filter(n() > 1) %>%               # Keep rows that appear more than once
+#   ungroup()                         # Ungroup to clean up the output
+# 
+# print(duplicates)
+# unique(duplicates$plant_ID)
+```
+
+### Chemistry
 
 First, taking a peak at the chemistry data distributions
 
 ```{r}
-pheno <- read.csv('Radish_Phenotype_Data.csv')
-hist(pheno$Glucoraphanin, breaks=30)
-hist(pheno$Glucoraphenin, breaks=30)
-hist(pheno$Glucoerucin, breaks=30)
-hist(pheno$X4.Methylthio.3.butenyl.glucosinolate, breaks=30)
-hist(pheno$Glucobrassicin, breaks=30)
-hist(pheno$GSL_total, breaks=30)
+# quick plots to look at distributions across all data, treatment and not
+hist(pheno_OG$Glucoraphanin, breaks=30)
+hist(pheno_OG$Glucoerucin, breaks=30)
+hist(pheno_OG$X4.Methylthio.3.butenyl.glucosinolate, breaks=30)
+hist(pheno_OG$Glucobrassicin, breaks=30)
+hist(pheno_OG$unknown1, breaks=30)
+hist(pheno_OG$unknown2, breaks=30)
+hist(pheno_OG$GSL_total, breaks=30)
 
+### plots after treatment split
+
+# Glucoraphanin
+hist(pheno_wide$Glucoraphanin_treatment_0, breaks=30)
+hist(pheno_wide$Glucoraphanin_treatment_1, breaks=30)
+qqnorm(pheno_wide$Glucoraphanin_treatment_0)
+qqline(pheno_wide$Glucoraphanin_treatment_0, col = "red")
+qqnorm(pheno_wide$Glucoraphanin_treatment_1)
+qqline(pheno_wide$Glucoraphanin_treatment_1, col = "red")
+shapiro.test(pheno_wide$Glucoraphanin_treatment_1) # v sig not normal
+
+#try log transformation
+log_Glucoraphanin <- log10(pheno_wide$Glucoraphanin_treatment_1 +1)
+hist(log_Glucoraphanin, breaks=30) 
+qqnorm(log_Glucoraphanin)
+qqline(log_Glucoraphanin, col = "red")
+# qq plot looks about as good as I think I can hope for... shapiro still not happy
+shapiro.test(log_Glucoraphanin)
+
+# Glucoerucin
+hist(pheno_wide$Glucoerucin_treatment_0, breaks=30)
+hist(pheno_wide$Glucoerucin_treatment_1, breaks=30)
+qqnorm(pheno_wide$Glucoerucin_treatment_0)
+qqline(pheno_wide$Glucoerucin_treatment_0, col = "red")
+qqnorm(pheno_wide$Glucoerucin_treatment_1)
+qqline(pheno_wide$Glucoerucin_treatment_1, col = "red")
+shapiro.test(pheno_wide$Glucoerucin_treatment_1) # v sig not normal
+#try log transformation
+log_Glucoerucin <- log10(pheno_wide$Glucoerucin_treatment_1 +1)
+hist(log_Glucoerucin, breaks=30) 
+qqnorm(log_Glucoerucin)
+qqline(log_Glucoerucin, col = "red")
+# qq plot looks about as good as I think I can hope for... shapiro still not happy, but much happier... 
+shapiro.test(log_Glucoerucin)
+
+# X4.Methylthio.3.butenyl.glucosinolate
+hist(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_0, breaks=30)
+hist(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_1, breaks=30)
+qqnorm(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_0)
+qqline(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_0, col = "red")
+qqnorm(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_1)
+qqline(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_1, col = "red")
+shapiro.test(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_1) # v sig not normal
+#try log transformation
+log_X4.Methylthio.3.butenyl.glucosinolate <- log10(pheno_wide$X4.Methylthio.3.butenyl.glucosinolate_treatment_1 +1)
+hist(log_X4.Methylthio.3.butenyl.glucosinolate, breaks=30) 
+qqnorm(log_X4.Methylthio.3.butenyl.glucosinolate)
+qqline(log_X4.Methylthio.3.butenyl.glucosinolate, col = "red")
+# qq plot looks better, but bad tails; shapiro still not happy, but much happier... 
+shapiro.test(log_X4.Methylthio.3.butenyl.glucosinolate)
+
+# Glucobrassicin
+hist(pheno_wide$Glucobrassicin_treatment_0, breaks=30)
+hist(pheno_wide$Glucobrassicin_treatment_1, breaks=30)
+qqnorm(pheno_wide$Glucobrassicin_treatment_0)
+qqline(pheno_wide$Glucobrassicin_treatment_0, col = "red")
+qqnorm(pheno_wide$Glucobrassicin_treatment_1)
+qqline(pheno_wide$Glucobrassicin_treatment_1, col = "red")
+shapiro.test(pheno_wide$Glucobrassicin_treatment_1) # v sig not normal
+#try log transformation
+log_Glucobrassicin <- log10(pheno_wide$Glucobrassicin_treatment_1 +1)
+hist(log_Glucobrassicin, breaks=30) 
+qqnorm(log_Glucobrassicin)
+qqline(log_Glucobrassicin, col = "red")
+# qq plot looks better, but bad tails; shapiro still not happy, but much happier... 
+shapiro.test(log_Glucobrassicin)
+
+# unknown1
+hist(pheno_wide$unknown1_treatment_0, breaks=30)
+hist(pheno_wide$unknown1_treatment_1, breaks=30)
+qqnorm(pheno_wide$unknown1_treatment_0)
+qqline(pheno_wide$unknown1_treatment_0, col = "red")
+qqnorm(pheno_wide$unknown1_treatment_1)
+qqline(pheno_wide$unknown1_treatment_1, col = "red")
+shapiro.test(pheno_wide$unknown1_treatment_1) # v sig not normal
+#try log transformation
+log_unknown1 <- log10(pheno_wide$unknown1_treatment_1 +1)
+hist(log_unknown1, breaks=30) 
+qqnorm(log_unknown1)
+qqline(log_unknown1, col = "red")
+# WORSE! Very odd distribution since looks like only 5 possible values... I guess I'll leave it as is... 
+shapiro.test(log_unknown1)
+
+# unknown2
+hist(pheno_wide$unknown2_treatment_0, breaks=30)
+hist(pheno_wide$unknown2_treatment_1, breaks=30)
+qqnorm(pheno_wide$unknown2_treatment_0)
+qqline(pheno_wide$unknown2_treatment_0, col = "red")
+qqnorm(pheno_wide$unknown2_treatment_1)
+qqline(pheno_wide$unknown2_treatment_1, col = "red")
+shapiro.test(pheno_wide$unknown2_treatment_1) # v sig not normal
+#try log transformation
+log_unknown2 <- log10(pheno_wide$unknown2_treatment_1 +1)
+hist(log_unknown2, breaks=30) 
+qqnorm(log_unknown2)
+qqline(log_unknown2, col = "red")
+# Worse... but might help the 0 treatment... I guess I'll leave it as is... 
+shapiro.test(log_unknown2)
+
+# GSL_total
+hist(pheno_wide$GSL_total_treatment_0, breaks=30)
+hist(pheno_wide$GSL_total_treatment_1, breaks=30)
+qqnorm(pheno_wide$GSL_total_treatment_0)
+qqline(pheno_wide$GSL_total_treatment_0, col = "red")
+qqnorm(pheno_wide$GSL_total_treatment_1)
+qqline(pheno_wide$GSL_total_treatment_1, col = "red")
+shapiro.test(pheno_wide$GSL_total_treatment_1) # v sig not normal
+
+# distribution notes:
+# other than unknown 2, most compounds have similar distributions before and after treatment (with diff means); generally looks like induced are mostly normal, whereas non-induced is a truncated normal (can't have less than 0)
+# Log transofrmation helps all EXCEPT unknown1 (only has 5 possible values), and unknown2... 
 ```
-
-You can add options to executable code like this
-
+##### data transformation
 ```{r}
-#| echo: false
-2 * 2
+### log transformations of all chem other than unknowns and the total value (wont map that)
+pheno_wide_log_trans <- pheno_wide %>% 
+  mutate(log_Glucoraphanin_treatment_1=log10(Glucoraphanin_treatment_1),
+         log_Glucoraphenin_treatment_1=log10(Glucoraphenin_treatment_1),
+         log_Glucoerucin_treatment_1=log10(Glucoerucin_treatment_1),
+         log_X4.Methylthio.3.butenyl.glucosinolate_treatment_1=log10(X4.Methylthio.3.butenyl.glucosinolate_treatment_1),
+         log_Glucobrassicin_treatment_1=log10(Glucobrassicin_treatment_1),
+         log_Glucoraphanin_treatment_0=log10(Glucoraphanin_treatment_0),
+         log_Glucoraphenin_treatment_0=log10(Glucoraphenin_treatment_0),
+         log_Glucoerucin_treatment_0=log10(Glucoerucin_treatment_0),
+         log_X4.Methylthio.3.butenyl.glucosinolate_treatment_0=log10(X4.Methylthio.3.butenyl.glucosinolate_treatment_0),
+         log_Glucobrassicin_treatment_0=log10(Glucobrassicin_treatment_0))
+  
+## generate phenotype data files
+
+# select just log transf treatment and carot/antho for first pass
+selected <- pheno_wide_log_trans %>% select(plant_ID,generation,antho,carot,unknown1_treatment_1,log_Glucoraphanin_treatment_1,log_Glucoraphenin_treatment_1,unknown2_treatment_1,log_Glucoerucin_treatment_1,log_X4.Methylthio.3.butenyl.glucosinolate_treatment_1,log_Glucobrassicin_treatment_1)
+
+# generate gemma input files from each phenotype column
+# identify the phenotype column names
+phenotype_names <- names(selected)[!names(selected) %in%  c("plant_ID", "generation")]
+
+# Loop through each phenotype and create a gemma input file
+for (trait in phenotype_names) {
+  # Create the gemma input data frame for the current trait
+  gemma_data <- data.frame(
+    plant_ID = selected$plant_ID,
+    phenotype_value = selected[[trait]] 
+  )
+  # Define the output file name
+  output_file <- paste0(trait, ".txt")
+
+  # Write the gemma input file (space-separated, no header, no row names)
+  write.table(gemma_data[, "phenotype_value", drop = FALSE], # drop = FALSE ensures it's a data frame
+              file = output_file,
+              sep = " ",
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE)
+
+  cat("Generated GEMMA input file:", output_file, "\n") # Progress message
+}
+
+# NEXT - check ai page - remove header when printing to .txt, use spece delimiter, need to translate IDs as well, but first figure our plink error
+
+
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+### Flower color
+```{r}
+
+```
+
